@@ -1,51 +1,94 @@
-<mvc:View 
-    controllerName="project1.controller.View1"
-    xmlns:l="sap.ui.layout"
-  xmlns:u="sap.ui.unified"
+<?xml version="1.0" encoding="UTF-8"?>
+<mvc:View
+  controllerName="project1.controller.View1"
   xmlns:mvc="sap.ui.core.mvc"
   xmlns="sap.m"
+  xmlns:u="sap.ui.unified"
+  xmlns:l="sap.ui.layout"
+  xmlns:core="sap.ui.core"
+  
   class="viewPadding">
- 
-  <VBox class="sapUiSmallMargin">
-   
-    <!-- File Uploader -->
-    <u:FileUploader
-      id="fileUploader"
-      name="myFileUpload"
-      fileType="xlsx"
-      uploadOnChange="false"
-      tooltip="Upload your file to the local server"
-      change="handleFileChange" />
-   
-    <Button text="Upload File" press="handleUploadPress" />
- 
-    <!-- Table for displaying Excel Data -->
-    <Table id="excelTable" visible="false" inset="false" items="{
-      path: '/dataArray'
-    }">
-      <columns>
-        <Column><Text text="ID" /></Column>
-        <Column><Text text="Name" /></Column>
-        
-        <Column><Text text="Email" /></Column>
-        <Column><Text text="Department" /></Column>
-        <Column><Text text="Year" /></Column>
-        <Column><Text text="Contact" /></Column>
-      </columns>
-      <items>
-        <ColumnListItem>
-          <cells>
-            <Text text="{ID}" />
-            <Text text="{Name}" />
-            
-            <Text text="{Email}" />
-            <Text text="{Department}" />
-            <Text text="{Year}" />
-            <Text text="{Contact}" />
-          </cells>
-        </ColumnListItem>
-      </items>
-    </Table>
- 
-  </VBox>
+
+  <SplitContainer id="splitContainer" >
+
+    <!-- Master Page -->
+    <masterPages>
+      <Page id="masterPage" title="Navigation">
+        <List id="navigationList" items="{/tabs}" mode="SingleSelectMaster" selectionChange="onNavigationItemSelect">
+    <items>
+        <StandardListItem title="{title}" icon="{icon}" type="Active"/>
+    </items>
+</List>
+
+      </Page>
+    </masterPages>
+
+    <!-- Detail Page -->
+    <detailPages>
+      <Page id="detailPage" title="Student Upload UI">
+        <VBox class="sapUiSmallMargin">
+
+          <Image
+            src="img/img.jpg"
+            alt="Waterfall Image"
+            width="60%"
+            height="200px"
+            tooltip="Uploaded Image"
+          />
+
+          <!-- File Uploader -->
+          <u:FileUploader
+            id="fileUploader"
+            name="myFileUpload"
+            fileType="xlsx"
+            uploadOnChange="false"
+            tooltip="Upload your file to the local server" />
+
+          <HBox class="sapUiSmallMarginTop">
+            <Button text="Upload File" press="handleUploadPress" />
+            <Button text="Load All Students" press="loadAllStudents" class="sapUiTinyMarginBegin" />
+            <Button text="Export Current Table" press="onExportExcel" class="sapUiTinyMarginBegin" />
+            <Button text="Export Last Uploaded File" press="handleExportPress" class="sapUiTinyMarginBegin" />
+          </HBox>
+
+          <!-- Message Strip -->
+          <MessageStrip id="messageStrip" text="Upload or export student data using the buttons above."
+            showCloseButton="true" showIcon="true" type="Information" class="sapUiSmallMarginTop" />
+
+          <!-- Table -->
+          <Table id="excelTable" visible="false" inset="false" items="{ path: '/dataArray' }">
+            <columns>
+              <Column><Text text="ID" /></Column>
+              <Column><Text text="Name" /></Column>
+              <Column><Text text="Email" /></Column>
+              <Column><Text text="Department" /></Column>
+              <Column><Text text="Year" /></Column>
+              <Column><Text text="Contact" /></Column>
+            </columns>
+            <items>
+              <ColumnListItem>
+                <cells>
+                  <Text text="{ID}" />
+                  <Text text="{Name}" />
+                  <Text text="{Email}" />
+                  <Text text="{Department}" />
+                  <Text text="{Year}" />
+                  <Text text="{Contact}" />
+                </cells>
+              </ColumnListItem>
+            </items>
+          </Table>
+
+          <!-- PDF Viewer -->
+          <Button
+            text="Preview PDF"
+            press="onPreviewPDF"
+            type="Critical"
+            icon="sap-icon://print"
+            class="sapUiTinyMarginBottom" />
+
+        </VBox>
+      </Page>
+    </detailPages>
+  </SplitContainer>
 </mvc:View>

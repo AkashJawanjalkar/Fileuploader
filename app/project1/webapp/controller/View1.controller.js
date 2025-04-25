@@ -1,7 +1,8 @@
 sap.ui.define([
   "sap/ui/core/mvc/Controller",
-  "sap/m/MessageToast"
-], function (Controller, MessageToast) {
+  "sap/m/MessageToast",
+  "sap/m/PDFViewer"
+], function (Controller, MessageToast, PDFViewer) {
   "use strict";
 
   return Controller.extend("project1.controller.View1", {
@@ -9,7 +10,17 @@ sap.ui.define([
     dataArray: [],
 
     onInit: function () {
+      // Initialize dataArray
       this.dataArray = [];
+
+      // Set tab model for navigation
+      var oModel = new sap.ui.model.json.JSONModel({
+        tabs: [
+          { title: "Upload Students", icon: "sap-icon://upload" },
+          { title: "View Students", icon: "sap-icon://table-chart" }
+        ]
+      });
+      this.getView().setModel(oModel);
     },
 
     handleUploadPress: function () {
@@ -42,12 +53,9 @@ sap.ui.define([
         oModel.setData({ dataArray: that.dataArray });
         that.getView().setModel(oModel);
 
-        console.log("Excel Data Array: ", that.dataArray);
-
         const oTable = that.getView().byId("excelTable");
         oTable.setVisible(true);
 
-        // Post data
         that._postExcelData();
       };
 
@@ -57,30 +65,20 @@ sap.ui.define([
     _postExcelData: function () {
       const that = this;
       const serviceUrl = this.getOwnerComponent().getModel().sServiceUrl;
-      const postUrl = `${serviceUrl}/Students`;  // Verify if the correct service URL is being used
-      //const postUrl = `${serviceUrl}/odata/v4/studentapp/Students`;
-      // remove any trailing “/” from serviceUrl, then append “/Students”
-      // const postUrl = `${serviceUrl.replace(/\/$/, "")}/Students`;
-
+      const postUrl = `${serviceUrl}/Students`;
 
       let successCount = 0;
       let errorCount = 0;
       const total = this.dataArray.length;
-    
-      // Logging the total data count
-      console.log(`Total records to upload: ${total}`);
-    
-      this.dataArray.forEach(function (student, index) {
-        console.log(`Uploading student data: ${JSON.stringify(student)}`);  // Log the data being uploaded
-    
+
+      this.dataArray.forEach(function (student) {
         $.ajax({
           url: postUrl,
           method: "POST",
           contentType: "application/json",
-          data: JSON.stringify(student),  // Ensure that the data is in JSON format and matches your OData entity structure
+          data: JSON.stringify(student),
           success: function () {
             successCount++;
-            console.log(`Upload successful for student: ${student.Name}`);
             if (successCount + errorCount === total) {
               that._showUploadSummary(successCount, errorCount);
             }
@@ -93,7 +91,7 @@ sap.ui.define([
               responseText: xhr.responseText,
               studentData: student
             });
-    
+
             if (successCount + errorCount === total) {
               that._showUploadSummary(successCount, errorCount);
             }
@@ -101,7 +99,6 @@ sap.ui.define([
         });
       });
     },
-    
 
     _showUploadSummary: function (successCount, errorCount) {
       if (errorCount === 0) {
@@ -109,6 +106,98 @@ sap.ui.define([
       } else {
         MessageToast.show(`Upload finished: ${successCount} success, ${errorCount} failed.`);
       }
+    },
+
+    loadAllStudents: function () {
+      const that = this;
+      const serviceUrl = this.getOwnerComponent().getModel().sServiceUrl;
+      const getUrl = `${serviceUrl}/Students`;
+
+      $.ajax({
+        url: getUrl,
+        method: "GET",
+        success: function (data) {
+          const oModel = new sap.ui.model.json.JSONModel();
+          oModel.setData({ dataArray: data.value });
+          that.getView().setModel(oModel);
+
+          const oTable = that.getView().byId("excelTable");
+          oTable.setVisible(true);
+        },
+        error: function (xhr) {
+          console.error("Failed to fetch student data:", xhr.responseText);
+        }
+      });
+    },
+
+    onExportExcel: function () {
+      const oModel = this.getView().getModel();
+      const data = oModel.getProperty("/dataArray");
+
+      if (!data || data.length === 0) {
+        MessageToast.show("No data to export.");
+        return;
+      }
+
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "StudentData");
+      XLSX.writeFile(wb, "StudentData.xlsx");
+    },
+
+    handleExportPress: function () {
+      if (!this.dataArray || this.dataArray.length === 0) {
+        MessageToast.show("No data available to export.");
+        return;
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(this.dataArray);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "ExportedData");
+      XLSX.writeFile(workbook, "ExportedData.xlsx");
+    },
+
+
+    onPreviewPDF: function () {
+      const oModel = this.getView().getModel();
+      const aData = oModel.getProperty("/dataArray");
+   
+      if (!aData || aData.length === 0) {
+        sap.m.MessageToast.show("No data to generate PDF.");
+        return;
+      }
+   
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text("Students Data", 14, 15);
+   
+      const headers = [["ID", "Name", "Email", "Department", "Year", "Contact"]];
+      const rows = aData.map(item => [
+        item.ID || "",
+        item.Name || "",
+        item.Email || "",
+        item.Department || "",
+        item.Year || "",
+        item.Contact || ""
+      ]);
+   
+      doc.autoTable({
+        startY: 20,
+        head: headers,
+        body: rows
+      });
+   
+      const pdfBlob = doc.output("blob");
+      const blobUrl = URL.createObjectURL(pdfBlob);
+   
+      const oPDFViewer = new PDFViewer({
+        source: blobUrl,
+        title: "Preview - Uploaded Students PDF",
+        showDownloadButton: true
+      });
+   
+      this.getView().addDependent(oPDFViewer);
+      oPDFViewer.open();
     }
 
   });
